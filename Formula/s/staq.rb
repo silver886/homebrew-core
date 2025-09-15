@@ -22,11 +22,19 @@ class Staq < Formula
   depends_on "gmp"
 
   def install
-    system "cmake", "-S", ".", "-B", "build",
-                    "-DINSTALL_SOURCES=ON",
-                    "-DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/dev/null", # skip unused FetchContent
-                    "-DPython3_EXECUTABLE=/dev/null", # skip macOS /usr/bin/python3
-                    *std_cmake_args
+    # Fix to error: no member named 'row' in 'col_vec2_t<T>'
+    # Issue ref: https://github.com/softwareQinc/staq/issues/85
+    inreplace "include/staq/grid_synth/mat_vec_2x2.hpp", "col_ == other.row;", "col_ == other.col_;"
+
+    args = [
+      "-DINSTALL_SOURCES=ON",
+      "-DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=/dev/null", # skip unused FetchContent
+      "-DPython3_EXECUTABLE=/dev/null", # skip macOS /usr/bin/python3
+    ]
+    # fmt: undefined template 'std::char_traits<fmt::char8_t>'
+    args << "-DCMAKE_CXX_FLAGS=-DFMT_USE_CHAR8_T=0" if DevelopmentTools.clang_build_version >= 1700
+
+    system "cmake", "-S", ".", "-B", "build", *args, *std_cmake_args
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
   end
